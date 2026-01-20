@@ -1,39 +1,40 @@
-﻿using Serilog;
+using Serilog;
 using Serilog.Events;
 
-namespace Lib.Common;
-
-internal static class Logging
+namespace Lib.Common
 {
-    private static readonly string LogDirectory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aeolus",
-        "Logs");
-
-    public static void Initialize()
+    internal static class Logging
     {
-        Directory.CreateDirectory(LogDirectory);
+        private static readonly string LogDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Aeolus",
+            "Logs");
 
-        var logFilePath = Path.Combine(LogDirectory, "log-.txt");
+        public static void Initialize()
+        {
+            Directory.CreateDirectory(LogDirectory);
+
+            var logFilePath = Path.Combine(LogDirectory, "log-.txt");
 
 #if DEBUG
-        var minimumLevel = LogEventLevel.Debug;
+            var minimumLevel = LogEventLevel.Debug;
 #else
-        var minimumLevel = LogEventLevel.Information;
+            var minimumLevel = LogEventLevel.Information;
 #endif
 
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Is(minimumLevel)
-            .WriteTo.File(
-                logFilePath,
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 30
-            )
-            .CreateLogger();
-    }
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Is(minimumLevel)
+                .WriteTo.File(
+                    logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 30
+                )
+                .CreateLogger();
+        }
 
-    public static void Dispose()
-    {
-        Log.CloseAndFlush();
+        public static void Dispose()
+        {
+            Log.CloseAndFlush();
+        }
     }
 }

@@ -1,11 +1,11 @@
 ﻿using Serilog;
 
-namespace Lib.Device
+namespace Lib.Device.Aeolus
 {
     /// <summary>
     /// Builds the 8-byte HID packet for the Invasion Aeolus 50 Pro CPU tower cooler.
     /// </summary>
-    internal class AeolusPacket : IByteSerializable
+    internal class AeolusPacket : IPacket
     {
         private const byte ReportId = 0x02;
         private const byte Header = 0x40;
@@ -19,14 +19,14 @@ namespace Lib.Device
             Rpm = (uint)Math.Clamp(rpm, 0, 9900);
         }
 
-        internal AeolusPacket SetTemperature(int temperature)
+        public IPacket SetTemperature(int temperature)
         {
             Log.Debug("Setting Temperature to: {Temperature}", temperature);
             Temperature = (byte)Math.Clamp(temperature, 0, 99);
             return this;
         }
 
-        internal AeolusPacket SetRpm(int rpm)
+        public IPacket SetRpm(int rpm)
         {
             Log.Debug("Setting RPM to: {Rpm}", rpm);
             Rpm = (uint)Math.Clamp(rpm, 0, 9900);

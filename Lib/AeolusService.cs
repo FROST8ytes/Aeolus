@@ -1,5 +1,7 @@
 ﻿using Lib.Configuration;
 using Lib.Device;
+using Lib.Device.Aeolus;
+using Lib.Common;
 using Serilog;
 
 namespace Lib
@@ -10,15 +12,22 @@ namespace Lib
     public class AeolusService : IDisposable
     {
         private readonly ConfigManager _configManager;
-        private readonly AeolusDevice _device;
+        private readonly IDeviceFactory _deviceFactory;
+        private readonly IDevice _device;
         private AppConfig _config;
         private Task? _updateTask;
 
-        public AeolusService(string appName)
+        public AeolusService(string appName) : this(appName, new AeolusDeviceFactory())
+        {
+        }
+
+        internal AeolusService(string appName, IDeviceFactory deviceFactory)
         {
             _configManager = new ConfigManager(appName);
             _config = _configManager.Load();
-            _device = new AeolusDevice();
+            _deviceFactory = deviceFactory;
+            _device = _deviceFactory.CreateDevice();
+            Logging.Initialize();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -26,7 +35,7 @@ namespace Lib
             Log.Information("Starting AeolusService...");
             if (!_device.Connect())
             {
-                Log.Error("Failed to connect to Aeolus device.");
+                Log.Error("Failed to connect to device.");
             }
             _updateTask = Task.Run(async () =>
             {
@@ -34,7 +43,7 @@ namespace Lib
                 {
                     int temperature = 99;
                     int rpm = 9900;
-                    var packet = new AeolusPacket()
+                    var packet = _deviceFactory.CreatePacket()
                         .SetTemperature(temperature)
                         .SetRpm(rpm);
                     _device.SendPacket(packet);
@@ -46,7 +55,8 @@ namespace Lib
 
         public void Dispose()
         {
-            // Dispose resources here
+            _device.Dispose();
+            Logging.Dispose();
         }
     }
 }

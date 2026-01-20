@@ -1,9 +1,12 @@
-﻿using HidSharp;
+using HidSharp;
 using Serilog;
 
-namespace Lib.Device
+namespace Lib.Device.Aeolus
 {
-    internal class AeolusDevice : IDisposable
+    /// <summary>
+    /// HID device implementation for the Invasion Aeolus 50 Pro CPU tower cooler.
+    /// </summary>
+    internal class AeolusDevice : IDevice
     {
         private const int VendorId = 0x5131;
         private const int ProductId = 0x2007;
@@ -11,7 +14,7 @@ namespace Lib.Device
         private HidDevice? _device;
         private HidStream? _stream;
 
-        internal bool Connect()
+        public bool Connect()
         {
             Log.Information("Attempting to connect to Aeolus device (VID: {VendorId:X4}, PID: {ProductId:X4})", VendorId, ProductId);
             try
@@ -40,7 +43,7 @@ namespace Lib.Device
             }
         }
 
-        internal bool SendPacket(IByteSerializable packet)
+        public bool SendPacket(IByteSerializable packet)
         {
             if (_stream == null || !_stream.CanWrite)
             {
