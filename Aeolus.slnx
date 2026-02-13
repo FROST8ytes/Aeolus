@@ -3,6 +3,9 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
+  <Project Path="GUI/GUI.csproj" Id="93e9a784-41b9-488a-9905-64b7805130cb">
+    <Platform Solution="Debug|x64" Project="x64" />
+  </Project>
   <Project Path="Lib/Lib.csproj" Id="11ab4472-1b40-4281-b0ee-5d9be4b88d79">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
