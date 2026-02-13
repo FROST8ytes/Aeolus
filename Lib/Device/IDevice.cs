@@ -5,6 +5,7 @@ namespace Lib.Device
     /// </summary>
     internal interface IDevice : IDisposable
     {
+        bool DebugLogPackets { get; set; }
         bool Connect();
         bool SendPacket(IByteSerializable packet);
     }

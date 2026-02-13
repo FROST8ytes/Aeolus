@@ -1,4 +1,4 @@
-﻿using Lib.Configuration;
+using Lib.Configuration;
 using Lib.Device;
 using Lib.Device.Aeolus;
 using Lib.Common;
@@ -11,11 +11,12 @@ namespace Lib
     /// </summary>
     public class AeolusService : IDisposable
     {
-        private readonly ConfigManager _configManager;
         private readonly IDeviceFactory _deviceFactory;
         private readonly IDevice _device;
-        private AppConfig _config;
+        private readonly ConfigManager _configManager;
         private Task? _updateTask;
+
+        public ConfigManager ConfigManager => _configManager;
 
         public AeolusService(string appName) : this(appName, new AeolusDeviceFactory())
         {
@@ -24,9 +25,9 @@ namespace Lib
         internal AeolusService(string appName, IDeviceFactory deviceFactory)
         {
             _configManager = new ConfigManager(appName);
-            _config = _configManager.Load();
             _deviceFactory = deviceFactory;
             _device = _deviceFactory.CreateDevice();
+            _device.DebugLogPackets = _configManager.Config.DebugLogPackets;
             Logging.Initialize();
         }
 
@@ -39,19 +40,22 @@ namespace Lib
             }
             _updateTask = Task.Run(async () =>
             {
+                int temperature = 0;
+                int rpm = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    int temperature = 99;
-                    int rpm = 9900;
                     var packet = _deviceFactory.CreatePacket()
                         .SetTemperature(temperature)
                         .SetRpm(rpm);
                     _device.SendPacket(packet);
-                    await Task.Delay(_config.UpdateIntervalMs, cancellationToken);
+
+                    temperature = (temperature + 1) % 100;
+                    rpm = (rpm + 100) % 10000;
+
+                    await Task.Delay(_configManager.Config.UpdateIntervalMs, cancellationToken);
                 }
             }, cancellationToken);
         }
-
 
         public void Dispose()
         {

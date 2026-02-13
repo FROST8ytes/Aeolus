@@ -14,6 +14,8 @@ namespace Lib.Device.Aeolus
         private HidDevice? _device;
         private HidStream? _stream;
 
+        public bool DebugLogPackets { get; set; }
+
         public bool Connect()
         {
             Log.Information("Attempting to connect to Aeolus device (VID: {VendorId:X4}, PID: {ProductId:X4})", VendorId, ProductId);
@@ -24,16 +26,24 @@ namespace Lib.Device.Aeolus
 
                 if (_device == null)
                 {
-                    Log.Warning($"No device found with vendor ID {VendorId} and product ID {ProductId}");
+                    Log.Warning("No device found with VID: {VendorId:X4}, PID: {ProductId:X4}", VendorId, ProductId);
                     return false;
                 }
 
+                Log.Information("Found device: {DevicePath}", _device.DevicePath);
+                Log.Information("Max report lengths - Input: {MaxInput}, Output: {MaxOutput}, Feature: {MaxFeature}",
+                    _device.GetMaxInputReportLength(),
+                    _device.GetMaxOutputReportLength(),
+                    _device.GetMaxFeatureReportLength());
+
                 if (!_device.TryOpen(out _stream))
                 {
-                    Log.Warning($"Unable to open device with vendor ID {VendorId}");
+                    Log.Warning("Unable to open device with VID: {VendorId:X4}", VendorId);
                     _device = null;
                     return false;
                 }
+
+                Log.Information("Successfully connected to device");
                 return true;
             }
             catch (Exception ex)
@@ -45,14 +55,27 @@ namespace Lib.Device.Aeolus
 
         public bool SendPacket(IByteSerializable packet)
         {
-            if (_stream == null || !_stream.CanWrite)
+            if (_stream == null || !_stream.CanWrite || _device == null)
             {
                 return false;
             }
             try
             {
-                Log.Information("Sending packet to Aeolus device");
-                _stream.Write(packet.ToBytes());
+                var packetBytes = packet.ToBytes();
+                var outputReportLength = _device.GetMaxOutputReportLength();
+
+                // Create buffer matching actual output report size
+                var buffer = new byte[outputReportLength];
+                Array.Copy(packetBytes, buffer, Math.Min(packetBytes.Length, outputReportLength));
+
+                if (DebugLogPackets)
+                {
+                    Log.Information("TX [{Length} bytes]: {PacketHex}",
+                        buffer.Length,
+                        string.Join(" ", buffer.Select(b => b.ToString("X2"))));
+                }
+
+                _stream.Write(buffer);
                 return true;
             }
             catch (Exception ex)
