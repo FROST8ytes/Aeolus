@@ -2,6 +2,7 @@ using Lib.Configuration;
 using Lib.Device;
 using Lib.Device.Aeolus;
 using Lib.Common;
+using Lib.Hardware;
 using Serilog;
 
 namespace Lib
@@ -14,6 +15,7 @@ namespace Lib
         private readonly IDeviceFactory _deviceFactory;
         private readonly IDevice _device;
         private readonly ConfigManager _configManager;
+        private readonly HardwareMonitor _hardwareMonitor;
         private Task? _updateTask;
 
         public ConfigManager ConfigManager => _configManager;
@@ -28,6 +30,7 @@ namespace Lib
             _deviceFactory = deviceFactory;
             _device = _deviceFactory.CreateDevice();
             _device.DebugLogPackets = _configManager.Config.DebugLogPackets;
+            _hardwareMonitor = new HardwareMonitor();
             Logging.Initialize();
         }
 
@@ -40,17 +43,14 @@ namespace Lib
             }
             _updateTask = Task.Run(async () =>
             {
-                int temperature = 0;
-                int rpm = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    var (temperature, rpm) = _hardwareMonitor.GetReadings();
+
                     var packet = _deviceFactory.CreatePacket()
                         .SetTemperature(temperature)
                         .SetRpm(rpm);
                     _device.SendPacket(packet);
-
-                    temperature = (temperature + 1) % 100;
-                    rpm = (rpm + 100) % 10000;
 
                     await Task.Delay(_configManager.Config.UpdateIntervalMs, cancellationToken);
                 }
@@ -59,6 +59,7 @@ namespace Lib
 
         public void Dispose()
         {
+            _hardwareMonitor.Dispose();
             _device.Dispose();
             Logging.Dispose();
         }
